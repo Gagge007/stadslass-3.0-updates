@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "packageType": "stadslass-web-module-zip-v1",
+  "packageVersion": 37,
+  "minHostVersionCode": 6,
+  "payloadUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v37.zip",
+  "payloadSha256": "b7335cc7e2ba715ddf001aefb7ec80ce72f810ac9d706258eb4945c0b2fc0831",
+  "payloadSignature": "",
+  "publishedAt": "2026-07-24T10:20:20Z"
+}
