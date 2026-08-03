@@ -118,3 +118,5 @@ jobs:
           git add function-package-v69.zip Stadslass_3.0_funktionspaket_69_publiceringskontroll.txt
           git commit -m 'Publicera verifierat funktionspaket 69'
           git push origin main
+
+# low-level ref trigger 2026-08-03T03:00Z
