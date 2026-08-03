@@ -1,5 +1,0 @@
-state=succeeded
-run_id=30782457221
-run_attempt=1
-target_sha256=e57c44f211aae292e04435ed62eff597828a6b186c5795de74a99be3b89eb5c9
-target_size=305858
