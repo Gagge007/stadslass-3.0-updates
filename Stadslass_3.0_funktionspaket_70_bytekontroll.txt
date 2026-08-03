@@ -1,0 +1,9 @@
+STADSLASS 3.0 FUNKTIONSPAKET 70 – BYTEKONTROLL
+Status: godkänd
+GitHub Actions run ID: 30784165498
+Paket: function-package-v70.zip
+Storlek: 309684 byte
+SHA-256: a0045e4a6f9e9ace05f2751b1c7c58abfb9a905afa48174524e766668c98a426
+Källpaket: function-package-v69.zip
+Källpaket SHA-256: e57c44f211aae292e04435ed62eff597828a6b186c5795de74a99be3b89eb5c9
+latest.json: inte ändrad av workflowet

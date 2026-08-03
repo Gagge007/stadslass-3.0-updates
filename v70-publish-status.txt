@@ -1,4 +1,5 @@
-state=started
+state=succeeded
 run_id=30784165498
 run_attempt=1
-trigger_commit=f8f47579f9cacc098d84cd0f7b7bd250ad34eacd
+target_sha256=a0045e4a6f9e9ace05f2751b1c7c58abfb9a905afa48174524e766668c98a426
+target_size=309684
