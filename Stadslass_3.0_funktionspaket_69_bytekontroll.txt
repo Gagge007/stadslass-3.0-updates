@@ -1,0 +1,9 @@
+STADSLASS 3.0 FUNKTIONSPAKET 69 – BYTEKONTROLL
+Status: godkänd
+GitHub Actions run ID: 30782457221
+Paket: function-package-v69.zip
+Storlek: 305858 byte
+SHA-256: e57c44f211aae292e04435ed62eff597828a6b186c5795de74a99be3b89eb5c9
+Orsak till rättning: ZIP-tidsstämplar skapades tidigare i Europe/Stockholm i stället för UTC
+Kodändring: ingen
+Signaturändring: ingen
