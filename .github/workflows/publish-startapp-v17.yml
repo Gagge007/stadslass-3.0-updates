@@ -1,0 +1,133 @@
+name: Publish verified Stadslass startapp v17
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - 'startapp-v17-publish/READY'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-startapp-v17
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out update repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Hämta verifierad mellanlagring
+        id: source
+        run: |
+          set -euo pipefail
+          META_URL='https://raw.githubusercontent.com/Gagge007/Stadslass-3.0/main/startapp-build-metadata-v17.json'
+          APK_URL='https://raw.githubusercontent.com/Gagge007/Stadslass-3.0/main/Stadslass-3.0-startapp-v17.apk'
+          if ! curl -fL --retry 2 --retry-delay 3 -H 'Cache-Control: no-cache' -o "$RUNNER_TEMP/startapp-build-metadata-v17.json" "$META_URL?run=$GITHUB_RUN_ID"; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Startapp 17 är inte färdigbyggd ännu.'
+            exit 0
+          fi
+          curl -fL --retry 3 --retry-delay 3 -H 'Cache-Control: no-cache' -o "$RUNNER_TEMP/Stadslass-3.0-startapp-v17.apk" "$APK_URL?run=$GITHUB_RUN_ID"
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+
+      - name: Kontrollera metadata och byteidentitet
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          meta=json.loads(Path('/home/runner/work/_temp/startapp-build-metadata-v17.json').read_text(encoding='utf-8'))
+          apk=Path('/home/runner/work/_temp/Stadslass-3.0-startapp-v17.apk')
+          assert meta['packageType']=='stadslass-startapp-apk-v1'
+          assert meta['packageId']=='se.gagge007.stadslass.v3'
+          assert meta['versionCode']==17
+          assert meta['versionName']=='3.0-host-17'
+          assert meta['apkFileName']=='Stadslass-3.0-startapp-v17.apk'
+          assert meta['minimumUpdaterVersionCode']==16
+          assert meta['required'] is True
+          assert meta['signingCertificateSha256']=='43817388a16025298e2f85453f21ec125e0efd27bea98128b02dc5f3c2127b19'
+          data=apk.read_bytes()
+          assert hashlib.sha256(data).hexdigest()==meta['apkSha256']
+          assert len(data)==meta['apkSizeBytes']
+          PY
+
+      - name: Installera APK-verifierare
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "build-tools;36.0.0"
+
+      - name: Verifiera APK-signatur och version
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          APK="$RUNNER_TEMP/Stadslass-3.0-startapp-v17.apk"
+          "$BT/apksigner" verify --verbose --print-certs --min-sdk-version 24 -Werr "$APK" | tee "$RUNNER_TEMP/apksigner-check.txt"
+          "$BT/aapt" dump badging "$APK" | tee "$RUNNER_TEMP/apk-badging.txt"
+          grep -Fq "package: name='se.gagge007.stadslass.v3'" "$RUNNER_TEMP/apk-badging.txt"
+          grep -Fq "versionCode='17'" "$RUNNER_TEMP/apk-badging.txt"
+          grep -Fq "versionName='3.0-host-17'" "$RUNNER_TEMP/apk-badging.txt"
+          CERT_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/apksigner-check.txt" | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+          test "$CERT_SHA" = '43817388a16025298e2f85453f21ec125e0efd27bea98128b02dc5f3c2127b19'
+
+      - name: Publicera APK och aktivera automatisk uppdatering
+        if: steps.source.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          meta=json.loads(Path('/home/runner/work/_temp/startapp-build-metadata-v17.json').read_text(encoding='utf-8'))
+          manifest={
+              'schemaVersion':1,
+              'packageType':'stadslass-startapp-apk-v1',
+              'packageId':'se.gagge007.stadslass.v3',
+              'versionCode':17,
+              'versionName':'3.0-host-17',
+              'apkUrl':'https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/Stadslass-3.0-startapp-v17.apk',
+              'apkSha256':meta['apkSha256'],
+              'apkSizeBytes':meta['apkSizeBytes'],
+              'signingCertificateSha256':meta['signingCertificateSha256'],
+              'minimumUpdaterVersionCode':16,
+              'required':True,
+              'publishedAt':datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z'),
+          }
+          Path('startapp-latest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+          PY
+          cp "$RUNNER_TEMP/Stadslass-3.0-startapp-v17.apk" Stadslass-3.0-startapp-v17.apk
+          rm -f Stadslass-3.0-startapp-v16.apk
+          META_SHA=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/startapp-build-metadata-v17.json'))['apkSha256'])")
+          META_SIZE=$(python3 -c "import json; print(json.load(open('$RUNNER_TEMP/startapp-build-metadata-v17.json'))['apkSizeBytes'])")
+          cat > startapp-v17-publish-status.txt <<EOF
+          state=succeeded
+          run_id=$GITHUB_RUN_ID
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          apk_sha256=$META_SHA
+          apk_size=$META_SIZE
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A Stadslass-3.0-startapp-v16.apk Stadslass-3.0-startapp-v17.apk startapp-latest.json startapp-v17-publish-status.txt
+          if git diff --cached --quiet; then
+            echo 'Startapp 17 är redan publicerad med samma innehåll.'
+            exit 0
+          fi
+          git commit -m 'Publicera och aktivera startapp 17'
+          git push origin HEAD:main
