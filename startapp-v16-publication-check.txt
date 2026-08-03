@@ -1,5 +1,0 @@
-status=PASS
-apk_sha256=cefb61ee029834cba55736c4f299cc4aa2829f60dc37158f056ca9336ed85c24
-apk_size_bytes=1967939
-versionCode=16
-versionName=3.0-host-16
