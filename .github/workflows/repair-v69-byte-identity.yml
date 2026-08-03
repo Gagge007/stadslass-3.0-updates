@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/repair-v69-byte-identity.yml'
+      - 'v69-repair/READY'
   workflow_dispatch:
 
 permissions:
@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   repair:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -103,6 +102,3 @@ jobs:
           git add function-package-v69.zip Stadslass_3.0_funktionspaket_69_bytekontroll.txt
           git commit -m 'Rätta byteidentitet för funktionspaket 69'
           git push origin main
-
-# retrigger 2026-08-03T03:34:00Z
-# low-level ref trigger 2026-08-03T03:36:00Z
