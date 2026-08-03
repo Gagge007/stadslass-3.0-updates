@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+'use strict';
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const app = fs.readFileSync(path.join(root, 'js', 'app.js'), 'utf8');
+const diagnostic = fs.readFileSync(path.join(root, 'js', 'sync-diagnostic.js'), 'utf8');
+const performance = fs.readFileSync(path.join(root, 'js', 'performance-monitor.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+assert(app.includes('liveReportExports'));
+assert(app.includes('diagnostic.snapshotReport({ reportId })'));
+assert(app.includes('monitor.snapshotReport({ reportId })'));
+assert(app.includes('liveReportStamp(snapshot.generatedAt)'));
+assert(app.includes('Stadslass_synkverifiering_${role}_v70_'));
+assert(app.includes('Stadslass_prestandarapport_v70_'));
+assert(app.includes('getSyncRequestStatus(requestId)'));
+assert(app.includes('Rapport-ID ${exportInfo.reportId}'));
+assert(diagnostic.includes("inventory({ reason: 'export', reportId })"));
+assert(diagnostic.includes('C. AKTIVA SYNKREQUESTS'));
+assert(diagnostic.includes('oldestActiveAgeSeconds'));
+assert(diagnostic.includes('staleActiveRequests'));
+assert(performance.includes('Exportsekvens'));
+assert(html.includes('sync-diagnostic-active-requests'));
+assert(html.includes('sync-diagnostic-oldest-active'));
+console.log('PASS report-export-v70.test.js');
