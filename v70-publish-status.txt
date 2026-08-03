@@ -1,4 +1,4 @@
-state=started
+state=failed
 run_id=30784040406
 run_attempt=1
 trigger_commit=c871aa412081c8317781580b2abaad68c5d06928
