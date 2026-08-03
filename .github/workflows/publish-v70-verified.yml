@@ -58,6 +58,8 @@ jobs:
           base64 -d v70-publish/v70-source.patch.gz.b64 | gzip -d > "$RUNNER_TEMP/v70-source.patch"
           cd "$RUNNER_TEMP/v70-source"
           patch -p1 --forward --batch < "$RUNNER_TEMP/v70-source.patch"
+          cp "$GITHUB_WORKSPACE/v70-publish/tests/report-export-v70.test.js" tests/report-export-v70.test.js
+          cp "$GITHUB_WORKSPACE/v70-publish/reports/report-export-v70-report.json" reports/report-export-v70-report.json
           rm -rf tests/__pycache__ .pytest_cache
 
       - name: Generate complete package 70 manifest
