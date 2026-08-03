@@ -1,0 +1,120 @@
+name: Run Stadslass function package v69 publication
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-v69-publication.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Europe/Stockholm
+      SOURCE_SHA256: 845755c4cdd79c7b7007c4f70de185679209777e8d05148ecea1197a621a4018
+      TARGET_SHA256: e57c44f211aae292e04435ed62eff597828a6b186c5795de74a99be3b89eb5c9
+      TARGET_SIZE: '305858'
+    steps:
+      - name: Checkout isolated publication branch
+        uses: actions/checkout@v4
+        with:
+          ref: fp69-publish
+          fetch-depth: 0
+
+      - name: Reconstruct verified source change
+        run: |
+          set -euo pipefail
+          cat v69-publish/patch_*.b64 > "$RUNNER_TEMP/v69.patch.xz.b64"
+          base64 -d "$RUNNER_TEMP/v69.patch.xz.b64" > "$RUNNER_TEMP/v69.patch.xz"
+          xz -dc "$RUNNER_TEMP/v69.patch.xz" > "$RUNNER_TEMP/v69.patch"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/function-package-v68.zip" \
+            https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v68.zip
+          echo "$SOURCE_SHA256  $RUNNER_TEMP/function-package-v68.zip" | sha256sum -c -
+          mkdir "$RUNNER_TEMP/v69-source"
+          unzip -q "$RUNNER_TEMP/function-package-v68.zip" -d "$RUNNER_TEMP/v69-source"
+          cd "$RUNNER_TEMP/v69-source"
+          patch -p2 < "$RUNNER_TEMP/v69.patch"
+
+      - name: Run all package tests from reconstructed source
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/v69-source"
+          export TZ=Europe/Stockholm
+          for test_file in tests/*.test.js; do
+            echo "RUN node $test_file"
+            node "$test_file"
+          done
+          for test_file in tests/*.test.py tests/integration_app.py; do
+            [ -f "$test_file" ] || continue
+            echo "RUN python $test_file"
+            python "$test_file"
+          done
+
+      - name: Build deterministic package and verify signed payload identity
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/v69-source"
+          {
+            echo module.json
+            find css -type f | sort
+            find data -type f | sort
+            echo index.html
+            find js -type f | sort
+            find reports -type f | sort
+            find tests -type f | sort
+          } > "$RUNNER_TEMP/v69-order.txt"
+          while IFS= read -r file; do
+            touch -d '2026-08-03 02:35:00 UTC' "$file"
+            chmod 0644 "$file"
+          done < "$RUNNER_TEMP/v69-order.txt"
+          python - "$RUNNER_TEMP/v69-order.txt" "$RUNNER_TEMP/function-package-v69.zip" <<'PY'
+          import pathlib, sys, zipfile
+          order = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8').splitlines()
+          with zipfile.ZipFile(sys.argv[2], 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+              for filename in order:
+                  archive.write(filename, arcname=filename)
+          PY
+          echo "$TARGET_SHA256  $RUNNER_TEMP/function-package-v69.zip" | sha256sum -c -
+          test "$(stat -c %s "$RUNNER_TEMP/function-package-v69.zip")" = "$TARGET_SIZE"
+          unzip -t "$RUNNER_TEMP/function-package-v69.zip"
+
+      - name: Upload verified publication artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-package-v69-publication
+          path: ${{ runner.temp }}/function-package-v69.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish package file and technical verification report to main
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/function-package-v69.zip" "$RUNNER_TEMP/published-function-package-v69.zip"
+          git fetch origin main
+          git checkout -B main origin/main
+          cp "$RUNNER_TEMP/published-function-package-v69.zip" function-package-v69.zip
+          cat > Stadslass_3.0_funktionspaket_69_publiceringskontroll.txt <<EOF
+          STADSLASS 3.0 FUNKTIONSPAKET 69 – PUBLICERINGSKONTROLL
+          Paket: function-package-v69.zip
+          Storlek: $TARGET_SIZE byte
+          SHA-256: $TARGET_SHA256
+          Bygggrund: function-package-v68.zip
+          Bygggrund SHA-256: $SOURCE_SHA256
+          Teststatus: samtliga paketerade Node.js- och Python-tester godkända
+          Reproducerbar ZIP: godkänd, byte-identisk med lokalt signerat underlag
+          GitHub Actions run ID: $GITHUB_RUN_ID
+          GitHub Actions run attempt: $GITHUB_RUN_ATTEMPT
+          latest.json: inte aktiverad i denna körning
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add function-package-v69.zip Stadslass_3.0_funktionspaket_69_publiceringskontroll.txt
+          git commit -m 'Publicera verifierat funktionspaket 69'
+          git push origin main
