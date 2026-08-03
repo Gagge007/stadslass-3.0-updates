@@ -1,6 +1,0 @@
-state=succeeded
-run_id=30811122653
-source_build_run_id=30808781375
-source_artifact_id=8854099035
-apk_sha256=7ea73a69e2ec9c744369a1d8ac5429addcc4daafee863cbef7075fc841a3db73
-apk_size=1967939
