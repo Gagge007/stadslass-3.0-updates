@@ -1,0 +1,11 @@
+STADSLASS 3.0 FUNKTIONSPAKET 69 – PUBLICERINGSKONTROLL
+Paket: function-package-v69.zip
+Storlek: 305858 byte
+SHA-256: e57c44f211aae292e04435ed62eff597828a6b186c5795de74a99be3b89eb5c9
+Bygggrund: function-package-v68.zip
+Bygggrund SHA-256: 845755c4cdd79c7b7007c4f70de185679209777e8d05148ecea1197a621a4018
+Teststatus: samtliga paketerade Node.js- och Python-tester godkända
+Reproducerbar ZIP: godkänd, byte-identisk med lokalt signerat underlag
+GitHub Actions run ID: 30780764911
+GitHub Actions run attempt: 1
+latest.json: inte aktiverad i denna körning
