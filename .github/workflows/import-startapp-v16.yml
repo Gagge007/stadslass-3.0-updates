@@ -1,4 +1,4 @@
-name: Import verified Stadslass startapp v16
+name: Verify published Stadslass startapp v16
 
 on:
   push:
@@ -11,31 +11,34 @@ permissions:
   contents: write
 
 jobs:
-  import-apk:
+  verify-public-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out public update repository
+      - name: Check out public repository state
         uses: actions/checkout@v6
 
-      - name: Download and verify signed APK artifact
+      - name: Verify committed APK bytes
         run: |
           set -euo pipefail
-          curl -fL --retry 4 --retry-delay 2 -o "$RUNNER_TEMP/v16-install.zip" 'https://sdmntprpolandcentral.oaiusercontent.com/files/00000000-a7a4-820a-8e11-13bfbeae2698/raw?se=2026-08-03T00:40:31Z&sp=r&sv=2026-02-06&sr=b&scid=d9f00a67-7dca-531d-9a71-5ec5038592a1&skoid=d4d17077-8f33-42a9-bd8b-aa9d5eaf5320&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-02T21:59:32Z&ske=2026-08-03T21:59:32Z&sks=b&skv=2026-02-06&sig=2esXMRRBfCB7xYqgOCTPvXTFT5rQU0LUvVsYIv6fdPk%3D'
-          rm -rf "$RUNNER_TEMP/v16-install"
-          mkdir -p "$RUNNER_TEMP/v16-install"
-          unzip -q "$RUNNER_TEMP/v16-install.zip" -d "$RUNNER_TEMP/v16-install"
-          test "$(find "$RUNNER_TEMP/v16-install" -maxdepth 1 -type f | wc -l)" -eq 1
-          test -f "$RUNNER_TEMP/v16-install/Stadslass-3.0-startapp-v16.apk"
-          echo 'cefb61ee029834cba55736c4f299cc4aa2829f60dc37158f056ca9336ed85c24  '"$RUNNER_TEMP/v16-install/Stadslass-3.0-startapp-v16.apk" | sha256sum -c -
-          test "$(stat -c '%s' "$RUNNER_TEMP/v16-install/Stadslass-3.0-startapp-v16.apk")" -eq 1967939
-          cp "$RUNNER_TEMP/v16-install/Stadslass-3.0-startapp-v16.apk" Stadslass-3.0-startapp-v16.apk
+          test -f Stadslass-3.0-startapp-v16.apk
+          ACTUAL_SHA=$(sha256sum Stadslass-3.0-startapp-v16.apk | awk '{print $1}')
+          ACTUAL_SIZE=$(stat -c '%s' Stadslass-3.0-startapp-v16.apk)
+          test "$ACTUAL_SHA" = 'cefb61ee029834cba55736c4f299cc4aa2829f60dc37158f056ca9336ed85c24'
+          test "$ACTUAL_SIZE" -eq 1967939
+          {
+            echo 'status=PASS'
+            echo "apk_sha256=$ACTUAL_SHA"
+            echo "apk_size_bytes=$ACTUAL_SIZE"
+            echo 'versionCode=16'
+            echo 'versionName=3.0-host-16'
+          } > startapp-v16-publication-check.txt
 
-      - name: Commit verified public APK
+      - name: Commit publication verification
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Stadslass-3.0-startapp-v16.apk
-          git commit -m "Publicera signerad startapp v16"
+          git add startapp-v16-publication-check.txt
+          git commit -m "Verifiera publicerad startapp v16"
           git push origin HEAD:main
