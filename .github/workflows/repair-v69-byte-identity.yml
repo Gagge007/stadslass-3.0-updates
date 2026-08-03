@@ -25,6 +25,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Record started status
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cat > v69-repair-status.txt <<EOF
+          state=started
+          run_id=$GITHUB_RUN_ID
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          trigger_commit=$GITHUB_SHA
+          EOF
+          git add v69-repair-status.txt
+          git commit -m 'Redovisa startad bytekorrigering för paket 69'
+          git push origin HEAD:main
+
       - name: Download current package without cache
         run: |
           set -euo pipefail
@@ -55,6 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/v69-source"
+          rm -rf tests/__pycache__
           {
             echo module.json
             find css -type f | sort
@@ -97,8 +113,32 @@ jobs:
           Kodändring: ingen
           Signaturändring: ingen
           EOF
+          cat > v69-repair-status.txt <<EOF
+          state=succeeded
+          run_id=$GITHUB_RUN_ID
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          target_sha256=$TARGET_SHA256
+          target_size=$TARGET_SIZE
+          EOF
+          git add function-package-v69.zip Stadslass_3.0_funktionspaket_69_bytekontroll.txt v69-repair-status.txt
+          git commit -m 'Rätta byteidentitet för funktionspaket 69'
+          git push origin HEAD:main
+
+      - name: Record failed status
+        if: failure()
+        run: |
+          set +e
+          git reset --hard
+          git fetch origin main
+          git checkout -B main origin/main
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add function-package-v69.zip Stadslass_3.0_funktionspaket_69_bytekontroll.txt
-          git commit -m 'Rätta byteidentitet för funktionspaket 69'
-          git push origin main
+          cat > v69-repair-status.txt <<EOF
+          state=failed
+          run_id=$GITHUB_RUN_ID
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          trigger_commit=$GITHUB_SHA
+          EOF
+          git add v69-repair-status.txt
+          git commit -m 'Redovisa misslyckad bytekorrigering för paket 69'
+          git push origin HEAD:main
