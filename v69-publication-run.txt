@@ -1,5 +1,5 @@
-state=started
-details=build and verification started
+state=failed
+details=workflow stopped near line 86
 run_id=30780764911
 run_attempt=1
 source_sha256=845755c4cdd79c7b7007c4f70de185679209777e8d05148ecea1197a621a4018
