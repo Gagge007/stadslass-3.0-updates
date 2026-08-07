@@ -1,0 +1,210 @@
+name: Build and publish Stadslass permanent startapp
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'stadslass-startapp-source.zip'
+      - '.github/workflows/build-and-publish-startapp.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: stadslass-startapp-${{ github.ref }}
+  cancel-in-progress: false
+
+# This workflow writes only its own verified APK and its manifest back to this
+# repository. The normal function-package manifest, latest.json, is untouched.
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Kontrollera permanenta signeringssecrets
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KS_B64"
+          test -n "$KS_PASS"
+          test -n "$KS_ALIAS"
+          test -n "$KEY_PASS"
+
+      - name: Installera Android SDK-delar
+        run: |
+          set -euo pipefail
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "system-images;android-35;google_apis;x86_64"
+
+      - name: Installera Gradle 8.13
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 5 -o "$RUNNER_TEMP/gradle-8.13-bin.zip" https://services.gradle.org/distributions/gradle-8.13-bin.zip
+          unzip -q "$RUNNER_TEMP/gradle-8.13-bin.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-8.13/bin" >> "$GITHUB_PATH"
+
+      - name: Packa upp och identifiera verifierad startappkälla
+        run: |
+          set -euo pipefail
+          test -f stadslass-startapp-source.zip
+          echo "d6b3045d6ea2e62eb9f39647b77aa3cfe62315b435e296ee1394de3717c944af  stadslass-startapp-source.zip" | sha256sum -c -
+          mkdir project
+          unzip -q stadslass-startapp-source.zip -d project
+          test -f project/settings.gradle
+          test -f project/app/build.gradle
+          test -f project/VERSION.json
+          test -f project/tests/verify_source.py
+          VERSION_CODE=$(sed -n "s/^[[:space:]]*versionCode[[:space:]]*\([0-9][0-9]*\)[[:space:]]*$/\1/p" project/app/build.gradle)
+          VERSION_NAME=$(sed -n "s/^[[:space:]]*versionName[[:space:]]*'\([^']*\)'.*/\1/p" project/app/build.gradle)
+          test "$(printf '%s\n' "$VERSION_CODE" | wc -l)" -eq 1
+          test -n "$VERSION_NAME"
+          test "$(jq -r .versionCode project/VERSION.json)" = "$VERSION_CODE"
+          test "$(jq -r .versionName project/VERSION.json)" = "$VERSION_NAME"
+          printf 'VERSION_CODE=%s\nVERSION_NAME=%s\nAPK_NAME=Stadslass-3.0-startapp-v%s.apk\n' "$VERSION_CODE" "$VERSION_NAME" "$VERSION_CODE" >> "$GITHUB_ENV"
+
+      - name: Kontrollera versions-, säkerhets- och hostkontrakt
+        run: |
+          set -euo pipefail
+          grep -Fq "applicationId 'se.gagge007.stadslass.v3'" project/app/build.gradle
+          grep -Fq "namespace 'se.gagge007.stadslass.v3'" project/app/build.gradle
+          grep -Fq 'SELF_UPDATE_API_VERSION = 1' project/app/src/main/java/se/gagge007/stadslass/v3/StartAppUpdateManager.java
+          grep -Fq 'SYNC_TRANSPORT_API_VERSION = 1' project/app/src/main/java/se/gagge007/stadslass/v3/SyncTransportManager.java
+          grep -Fq 'android.permission.REQUEST_INSTALL_PACKAGES' project/app/src/main/AndroidManifest.xml
+          if grep -R -n -E 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|github_pat_|ghp_[A-Za-z0-9]+' project; then
+            echo 'Privat nyckel eller GitHub-token får inte finnas i källpaketet'
+            exit 1
+          fi
+          if grep -R -n -F 'driftlogg_v4_full' project/app/src/main/java; then
+            echo 'Startappen får inte läsa eller skriva driftlogg_v4_full'
+            exit 1
+          fi
+          if grep -R -n -E 'ACCESS_BACKGROUND_LOCATION|READ_CONTACTS|WRITE_CONTACTS|GET_ACCOUNTS|READ_PHONE_STATE|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|MANAGE_EXTERNAL_STORAGE|QUERY_ALL_PACKAGES|FOREGROUND_SERVICE|RECEIVE_BOOT_COMPLETED' project/app/src/main; then
+            echo 'Förbjuden Androidbehörighet eller tjänst förekommer'
+            exit 1
+          fi
+
+      - name: Kör samtliga Python-källtester
+        run: |
+          set -euo pipefail
+          : > python-tests.log
+          for test_file in project/tests/*.py; do
+            echo "=== $test_file" | tee -a python-tests.log
+            python3 "$test_file" 2>&1 | tee -a python-tests.log
+          done
+
+      - name: Kör JVM-enhetstester
+        run: gradle -p project --no-daemon --stacktrace testDebugUnitTest | tee unit-tests.log
+
+      - name: Kör Android WebView-integrationsprov
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: gradle -p project --no-daemon --stacktrace connectedDebugAndroidTest | tee instrumentation-tests.log
+
+      - name: Återskapa permanent APK-signeringsnyckel
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p signing-temp
+          printf '%s' "$KS_B64" | base64 --decode > signing-temp/stadslass-3.0-permanent.jks
+          chmod 600 signing-temp/stadslass-3.0-permanent.jks
+
+      - name: Bygg, zipaligna och signera release-APK
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          gradle -p project --no-daemon --stacktrace clean lintRelease assembleRelease | tee gradle-build.log
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          "$BT/zipalign" -P 16 -f -v 4 project/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk | tee zipalign-build.txt
+          "$BT/apksigner" sign --ks signing-temp/stadslass-3.0-permanent.jks --ks-key-alias "$KS_ALIAS" --ks-pass env:KS_PASS --key-pass env:KEY_PASS --min-sdk-version 24 --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true --v4-signing-enabled false --out "$APK_NAME" aligned.apk
+          test -f "$APK_NAME"
+
+      - name: Verifiera signerad APK och skapa uppdateringsmanifest
+        run: |
+          set -euo pipefail
+          BT="$ANDROID_HOME/build-tools/36.0.0"
+          "$BT/zipalign" -c -P 16 -v 4 "$APK_NAME" | tee zipalign-check.txt
+          "$BT/apksigner" verify --verbose --print-certs --min-sdk-version 24 -Werr "$APK_NAME" | tee apksigner-check.txt
+          "$BT/aapt" dump badging "$APK_NAME" | tee apk-badging.txt
+          "$BT/aapt" dump permissions "$APK_NAME" | tee apk-permissions.txt
+          grep -Fq "package: name='se.gagge007.stadslass.v3'" apk-badging.txt
+          grep -Fq "versionCode='$VERSION_CODE'" apk-badging.txt
+          grep -Fq "versionName='$VERSION_NAME'" apk-badging.txt
+          grep -Fq "android.permission.REQUEST_INSTALL_PACKAGES" apk-permissions.txt
+          for forbidden in android.permission.ACCESS_BACKGROUND_LOCATION android.permission.READ_CONTACTS android.permission.WRITE_CONTACTS android.permission.READ_PHONE_STATE android.permission.READ_EXTERNAL_STORAGE android.permission.WRITE_EXTERNAL_STORAGE android.permission.MANAGE_EXTERNAL_STORAGE android.permission.GET_ACCOUNTS android.permission.FOREGROUND_SERVICE android.permission.RECEIVE_BOOT_COMPLETED android.permission.QUERY_ALL_PACKAGES; do
+            if grep -Fq "$forbidden" apk-permissions.txt; then
+              echo "Signerad APK innehåller förbjuden behörighet: $forbidden"
+              exit 1
+            fi
+          done
+          APK_SHA=$(sha256sum "$APK_NAME" | awk '{print $1}')
+          APK_SIZE=$(wc -c < "$APK_NAME" | tr -d '[:space:]')
+          CERT_SHA=$(keytool -printcert -jarfile "$APK_NAME" | sed -n 's/^SHA256: //p' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          test "$(printf '%s\n' "$CERT_SHA" | wc -l)" -eq 1
+          test "${#CERT_SHA}" -eq 64
+          jq -n \
+            --arg package_id 'se.gagge007.stadslass.v3' \
+            --arg version_name "$VERSION_NAME" \
+            --arg apk_url "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/$APK_NAME" \
+            --arg apk_sha "$APK_SHA" \
+            --arg cert_sha "$CERT_SHA" \
+            --arg published_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson version_code "$VERSION_CODE" \
+            --argjson apk_size "$APK_SIZE" \
+            '{schemaVersion:1,packageType:"stadslass-startapp-apk-v1",packageId:$package_id,versionCode:$version_code,versionName:$version_name,apkUrl:$apk_url,apkSha256:$apk_sha,apkSizeBytes:$apk_size,signingCertificateSha256:$cert_sha,minimumUpdaterVersionCode:16,required:true,publishedAt:$published_at}' > startapp-latest.json
+          jq -e . startapp-latest.json >/dev/null
+
+      - name: Publicera endast verifierad startapp
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$APK_NAME" startapp-latest.json
+          test "$(git diff --cached --name-only | sort)" = "$(printf '%s\n%s\n' "$APK_NAME" startapp-latest.json | sort)"
+          git commit -m "Publicera verifierad startapp $VERSION_CODE"
+          git push origin HEAD:main
+
+      - name: Ladda upp tekniskt underlag
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stadslass-3.0-startapp-v${{ env.VERSION_CODE }}-tekniskt-underlag
+          path: |
+            python-tests.log
+            unit-tests.log
+            instrumentation-tests.log
+            gradle-build.log
+            zipalign-build.txt
+            zipalign-check.txt
+            apksigner-check.txt
+            apk-badging.txt
+            apk-permissions.txt
+            startapp-latest.json
+          if-no-files-found: warn
+          retention-days: 30
