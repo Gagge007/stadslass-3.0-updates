@@ -1,0 +1,86 @@
+name: Publish Stadslass function package v80 one-time
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-function-package-v80.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: stadslass-function-package-v80-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-verify-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Verify inputs
+        run: |
+          set -euo pipefail
+          test -f function-package-v79.zip
+          test -f tools/build-function-package-v80.py
+          test -f tools/v80-patch-b64-1.txt
+          test -f tools/v80-patch-b64-2.txt
+          test -f tools/v80-patch-b64-3.txt
+          test -f tools/v80-patch-b64-4.txt
+          test -f tools/v80-patch-b64-5.txt
+          echo '36dcd6aff78ad87f140649ef763bfb538923a9fb9bf1839b068f2f261011b416  function-package-v79.zip' | sha256sum -c -
+
+      - name: Rebuild exact tested v80 package
+        run: |
+          set -euo pipefail
+          python3 tools/build-function-package-v80.py
+          test -f function-package-v80.zip
+          test -f latest.json
+          echo 'bde8f58732a8f0320c75816a68a5b19dffb436b6d99cc141235bec5a346b457c  function-package-v80.zip' | sha256sum -c -
+          unzip -t function-package-v80.zip >/dev/null
+
+      - name: Verify manifest and publication metadata
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json, zipfile
+          package = Path('function-package-v80.zip')
+          expected = 'bde8f58732a8f0320c75816a68a5b19dffb436b6d99cc141235bec5a346b457c'
+          assert hashlib.sha256(package.read_bytes()).hexdigest() == expected
+          latest = json.loads(Path('latest.json').read_text(encoding='utf-8'))
+          assert latest['schemaVersion'] == 1
+          assert latest['packageType'] == 'stadslass-web-module-zip-v1'
+          assert latest['packageVersion'] == 80
+          assert latest['minHostVersionCode'] == 18
+          assert latest['payloadSha256'] == expected
+          assert latest['payloadUrl'].endswith('/function-package-v80.zip')
+          assert latest.get('payloadSignature')
+          with zipfile.ZipFile(package) as z:
+              module = json.loads(z.read('module.json'))
+              assert module['packageVersion'] == 80
+              assert module['minHostVersionCode'] == 18
+              assert module['entryPoint'] == 'index-v80.html'
+              names = set(z.namelist())
+              assert 'js/driftsync-handshake-service-v80.js' in names
+              assert 'js/app-v80.js' in names
+          print('PUBLICATION_METADATA_PASS')
+          PY
+
+      - name: Publish only v80 package and latest.json
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- function-package-v80.zip latest.json
+          ACTUAL="$(git diff --cached --name-only | sort)"
+          EXPECTED="$(printf '%s\n%s\n' function-package-v80.zip latest.json | sort)"
+          test "$ACTUAL" = "$EXPECTED"
+          git commit -m 'Publicera funktionspaket 80 med reparerad handskakning'
+          git push origin HEAD:main
