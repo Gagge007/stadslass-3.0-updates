@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "packageType": "stadslass-startapp-apk-v1",
   "packageId": "se.gagge007.stadslass.v3",
-  "versionCode": 18,
-  "versionName": "3.0-host-18",
-  "apkUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/Stadslass-3.0-startapp-v18.apk",
-  "apkSha256": "27a34390f3de7e693a6e783551d3fee574fb0facd3562a1b45395970eedfc2d6",
+  "versionCode": 19,
+  "versionName": "3.0-host-19",
+  "apkUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/Stadslass-3.0-startapp-v19.apk",
+  "apkSha256": "fdd899595758cb2f6015ae9c649f54e45edfd0a511a2d6a780af02f97319e6e1",
   "apkSizeBytes": 1967939,
   "signingCertificateSha256": "43817388a16025298e2f85453f21ec125e0efd27bea98128b02dc5f3c2127b19",
   "minimumUpdaterVersionCode": 17,
   "required": true,
-  "publishedAt": "2026-08-07T21:28:48Z"
+  "publishedAt": "2026-08-10T18:32:38Z"
 }
