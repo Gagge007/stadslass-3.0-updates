@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "packageType": "stadslass-web-module-zip-v1",
-  "packageVersion": 97,
+  "packageVersion": 98,
   "minHostVersionCode": 13,
-  "payloadUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v97.zip",
-  "payloadSha256": "81e76a08b2b6fd34e3ce7fef98786d73de70cfb91bde5c08435af2048b3c7a43",
-  "payloadSignature": "NajZ+Y2ZRoAau4giKTefORGe9DLOCnxSxh+J86QAi55E13ec/zISiZp7NuMtOdveT5p5tvo9H01+sAJPjFFPcJONwkxF7tnDrNakqLTYWMN3q1Gs0B72pgS+O3NRAmYrzmbozm1IbN58Ju+i1dsgMg4YhC4lQKe1fKHg/xsnlpGs5t6BJ2FtwhKhrBUoGdp9Nip3coh6gBy0rAEZN+pD46P4bVFn/aWCrpOdLr+NFjdBy8UsTwxpilKk91yZV25EvtdLkJqzR3Z8zj5/yLU+PXrLGStFtnpm2FNq1hyJ4O2qQzhpwqRDc82cY8MDGFvpyGsyMavXs2vU3ZUCwjYDXhDEgon2pPu78pf9NQqQ/QcnE8P+uN4f6ExO0x+RjuD/m1ZsbSKcDP+R/Fn5nXmUkk5escFhZPXXqD9JhQWViJW1BT/bzuJq+ZE0vwhzrkfFAGTdevaUhW8e0Vj2cwazRp+WLR84sKQRk5ssUUdm3U2Irwc+Ah4FKM0OftBFPedn"
+  "payloadUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v98.zip",
+  "payloadSha256": "0bf1d86a4871c9b5e0d5a239ac7a476b23a31a8ac291c603efcebd6458040a6e",
+  "payloadSignature": "HNH7U+0+1idC7XSMpkz+Fd09MBEz2ffkZjFbm5g8bNFT1OcNt4zLk2R6QsIWE4sl3gYzG3Om89l4zBzP4OBa1wZCEo95h0YboLYFUeCPO7dWgdBBsmbT7QCjsXPSpi8VxgNNW9S0RcpbsXjU8pfIcOjcesBhOFW5AdoO0L42uG/tO9wk822BnXaQwgFY3W0CjKfHvMadMrxU9jlRdlkwLw9cnw3DnO5dQS5c7Wup9pJcjz6Wa3o9+zhfT+98E3lUrqBVhakgIRyCSOimsRGkOhkYSkPMHg4V8ed0tI5WX219pswv2p+n/yXGg9sKp3GAl8P+hJqg8MCnxCr6JZJ6J6PBhCxqXqnPC0oonJbwgFPrQqUB90bBr/0We9tYKAr8eDW1Lpp8kp+GoNZZOH+a3xJug2TdIXdlrESzHLfVXeqHtWkWhSaQWx8nY8eCo5UTNEXuNRZsn8dDc6QveTzKp2VC48+ZWXx5ajrUcjE03pCZYu+/Zb7326m6SdgOs69n"
 }
