@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "packageType": "stadslass-web-module-zip-v1",
-  "packageVersion": 139,
+  "packageVersion": 140,
   "minHostVersionCode": 22,
   "moduleId": "stadslass.core-mail-sync-reader",
-  "payloadUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v139.zip",
-  "payloadSha256": "fb75f91a3bacec1abeba4a182ea9d442aa2913c051a75b3733e5b72a04d73fae",
-  "payloadSignature": "fPLy9snT23PwiD+DLeZphErsMD2rL5AH/FJfAPiNYZbALg8vpRXtAI2u5s2M3LNgJRze0RZLgE6MTZkBfKGVWe4sUWCM/Iv8m4JYT5ghHonIlyOj1yjuA5Rt1qW4cGKhwhgPUw0+cq7bK8suPHedwvrDMd5gGp2A+M74fl4qUcMlrAbbHDAgdQNGXEdMfVaRvL/UkYvNzFDBKPvtszfeoKgs/dlhmQ3VngEWWBFk9yRdv5ZNc2sjMKV78h2Bve396vK3svGCYPgaegJDV5GPiGlqMlmo3RzjyFxDTAz4D6QVcqiKazY0x+0bMDNpjWUflu7xJcS9iprU+8e19/kOdTe1415RaUYn4wK0KaUaY6IYqoxhbOp6DL1TML4WFGH7nS7zBccH1bkp0mYcncRmkshOv1op4jkEavDOLjI+UOkKyJtDLKJQQgdwdNJ96mBPLlgdWlYxewQ/VLbSW9Sc8h3usBK9DF6/NZAuOBgorpMV+WIZN5U8CbKs2sDfcONk"
+  "payloadUrl": "https://raw.githubusercontent.com/Gagge007/stadslass-3.0-updates/main/function-package-v140.zip",
+  "payloadSha256": "19b36f6f4ab0020b9966320a77cdb62585c51f0760d7dedcf431ebe86a01366c",
+  "payloadSignature": "RNiEGIdRtpUvn5+SwQ02/vZLE7nMOE+jznqwlCn0+mbys5RN/hGBdxH9mWGwHdEUfRuTHdMnbZyD9mLnHXgv2viiHvNT7APvsZsKD/ZitgSKcIYpSffiMmzhuB1K8mFmIe7hK2wIQv9hc4O2KU4I7pxNIkTtEdghvirg4cVWY3s1hLJcnP3wDk27Nnt7XOJxZqNnNM27vkSrO/BkBJkKmr9OrlNYoqSPoJz+8ztjffMG1bqZ0Vvvbvk6cSO3RmEdScPNODs9oSpQ8J+yyaO0gyUKI0ZQsoP20CHZAmi88OIsjdLj6Y7q+MPIW3OyEcO71f2i7qhmRbGa1PGhwUw3xPRtSGcqb0JfxXL3sdsfTMudeYpcSsdk+8ebXeg1pOwz9Kvad9MIUZYxpPyI53d3thZq1s/o7jprdzeI/sjYwSbCpW5NkdYa01z8BdUFrU7iyQW128+/xkKtuzi9c9xNg3Bix5GmroCqPBtk/jzTU3CmvnUP4Cp64W5rRwTwkyyY"
 }
